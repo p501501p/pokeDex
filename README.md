@@ -33,7 +33,7 @@ PokeDex เป็นเว็บไซต์สำหรับค้นหาแ
 
 **นายกิตติศักดิ์ ขันแข็ง (Kittisak Kankaeng)**
 
-นักศึกษาสาขาวิทยาการคอมพิวเตอร์ (Computer Science)
+นักศึกษาสาขาวิทยาการคอมพิวเตอร์และสารสนเทศ (Computer Science)
 
 GitHub: https://github.com/p501501p
 
