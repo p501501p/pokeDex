@@ -4,6 +4,7 @@ import {
   Avatar,
   Box,
   Button,
+  Chip as MuiChip,
   Card,
   CardActionArea,
   CardContent,
@@ -14,7 +15,10 @@ import {
   Skeleton,
   Stack,
   Typography,
+  TextField,
+  InputAdornment,
 } from "@mui/material";
+import SearchIcon from '@mui/icons-material/Search';
 
 interface PokemonListItem {
   name: string;
@@ -31,7 +35,13 @@ interface PokemonPageResponse {
 const PAGE_SIZE = 60;
 const TOTAL_POKEMON = 1351;
 
+// Color scheme (60 / 30 / 10 rule)
+const COLOR_PRIMARY = "#f4cf53"; // 60%
+const COLOR_SECONDARY = "#8edbfa"; // 30%
+const COLOR_ACCENT = "#4d4a49"; // 10%
+
 export default function Home() {
+  const [searchTerm, setSearchTerm] = useState("");
   const [pokemonList, setPokemonList] = useState<PokemonListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -85,10 +95,15 @@ export default function Home() {
 
   const totalLoaded = useMemo(() => pokemonList.length, [pokemonList]);
 
+  const filteredList = useMemo(() => {
+    if (!searchTerm) return pokemonList;
+    return pokemonList.filter((p) => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  }, [pokemonList, searchTerm]);
+
   return (
-    <Box sx={{ minHeight: "100vh", background: "linear-gradient(135deg, #fef2f2 0%, #eff6ff 100%)", py: { xs: 4, md: 6 } }}>
+    <Box sx={{ minHeight: "100vh", background: `linear-gradient(135deg, rgba(244,207,83,0.10) 0%, rgba(142,219,250,0.06) 100%)`, py: { xs: 4, md: 6 } }}>
       <Container maxWidth="xl">
-        <Paper elevation={0} sx={{ borderRadius: 4, p: { xs: 3, md: 5 }, mb: 4, background: "rgba(255,255,255,0.8)", backdropFilter: "blur(16px)" }}>
+        <Paper elevation={2} sx={{ borderRadius: 4, p: { xs: 3, md: 5 }, mb: 4, background: `linear-gradient(180deg, rgba(142,219,250,0.18), rgba(244,207,83,0.06))`, backdropFilter: "blur(12px)" }}>
           <Box sx={{ display: "flex", flexDirection: { xs: "column", md: "row" }, justifyContent: "space-between", gap: 2, alignItems: { xs: "flex-start", md: "center" } }}>
             <Box>
               <Typography variant="overline" sx={{ color: "#ef4444", fontWeight: 700, letterSpacing: 2 }}>
@@ -100,12 +115,23 @@ export default function Home() {
               <Typography variant="body1" color="text.secondary">
                 เลือกโปเกม่อนที่คุณชื่นชอบและดูรายละเอียดแบบครบถ้วนได้ทันที
               </Typography>
+              <Box sx={{ mt: 2, maxWidth: 520 }}>
+                <Box component="label" sx={{ display: 'flex', alignItems: 'center', gap: 1.25, bgcolor: '#fff', px: 2, py: 0.5, borderRadius: 2 }}>
+                  <SearchIcon color="action" />
+                  <input
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="ค้นหาโปเกม่อน (เช่น pikachu)"
+                    style={{ border: 'none', outline: 'none', background: 'transparent', flex: 1, fontSize: 14 }}
+                  />
+                </Box>
+              </Box>
             </Box>
             <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 1.5 }}>
-              <Button component="a" href="/about" variant="outlined" sx={{ borderRadius: 999 }}>
+              <Button component="a" href="/about" variant="outlined" sx={{ borderRadius: 999, borderColor: COLOR_ACCENT, color: COLOR_ACCENT }}>
                 About this project
               </Button>
-              <Chip label={`${totalLoaded}/${TOTAL_POKEMON} ตัว`} color="primary" sx={{ fontWeight: 700, px: 1 }} />
+              <MuiChip label={`${totalLoaded}/${TOTAL_POKEMON} ตัว`} sx={{ fontWeight: 800, px: 1.25, py: 0.5, bgcolor: COLOR_ACCENT, color: '#fff' }} />
             </Box>
           </Box>
         </Paper>
@@ -127,19 +153,19 @@ export default function Home() {
         ) : (
           <>
             <Grid container spacing={2.5}>
-              {pokemonList.map((pokemon) => {
+              {filteredList.map((pokemon) => {
                 const pokemonId = pokemon.url.split("/")[6];
                 return (
                   <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={pokemon.name}>
-                    <Card sx={{ borderRadius: 4, height: "100%", transition: "transform 0.2s ease, box-shadow 0.2s ease", "&:hover": { transform: "translateY(-4px)", boxShadow: 6 } }}>
+                    <Card sx={{ borderRadius: 6, height: "100%", overflow: "hidden", transition: "transform 0.18s ease, box-shadow 0.18s ease", boxShadow: 1, background: '#fff', borderTop: `4px solid ${COLOR_SECONDARY}`, "&:hover": { transform: "translateY(-6px)", boxShadow: 8 } }}>
                       <CardActionArea component="a" href={`/Pokemon/${pokemon.name}`} sx={{ height: "100%" }}>
                         <CardContent sx={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", py: 3 }}>
                           <Avatar
                             alt={pokemon.name}
                             src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemonId}.png`}
-                            sx={{ width: 84, height: 84, mb: 2, bgcolor: "#f1f5f9" }}
+                            sx={{ width: 92, height: 92, mb: 2, bgcolor: 'transparent' }}
                           />
-                          <Typography variant="h6" sx={{ textTransform: "capitalize", fontWeight: 700 }}>
+                          <Typography variant="h6" sx={{ textTransform: "capitalize", fontWeight: 800, letterSpacing: 0.3 }}>
                             {pokemon.name}
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
