@@ -47,7 +47,7 @@ export default function AboutPage() {
 
           <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2, alignItems: { xs: "flex-start", sm: "center" } }}>
             <Typography variant="body1">Source Code:</Typography>
-            <Link href="https://github.com/" target="_blank" rel="noreferrer" underline="hover" sx={{ fontWeight: 600 }}>
+            <Link href="https://github.com/p501501p/pokeDex" target="_blank" rel="noreferrer" underline="hover" sx={{ fontWeight: 600 }}>
               GitHub Repository
             </Link>
           </Box>
