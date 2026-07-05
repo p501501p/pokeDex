@@ -25,7 +25,7 @@ body {
   display: flex;
   flex-direction: column;
   color: var(--foreground);
-  background: var(--background);
+  background: linear-gradient(135deg, #fef2f2 0%, #f8fafc 48%, #eff6ff 100%);
   font-family: Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
