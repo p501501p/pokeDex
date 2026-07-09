@@ -35,6 +35,34 @@ interface PokemonPageResponse {
 
 const PAGE_SIZE = 60;
 const TOTAL_POKEMON = 1351;
+const requestCache = new Map<string, Promise<unknown>>();
+
+async function fetchJson<T>(url: string, signal?: AbortSignal): Promise<T> {
+  const cached = requestCache.get(url);
+  if (cached) {
+    return cached as Promise<T>;
+  }
+
+  const pending = fetch(url, {
+    cache: "force-cache",
+    headers: { Accept: "application/json" },
+    signal,
+  })
+    .then(async (response) => {
+      if (!response.ok) {
+        throw new Error(`Failed to fetch Pokémon data: ${response.status}`);
+      }
+
+      return (await response.json()) as T;
+    })
+    .catch((error) => {
+      requestCache.delete(url);
+      throw error;
+    });
+
+  requestCache.set(url, pending);
+  return pending as Promise<T>;
+}
 
 // Poké Ball-inspired palette
 const COLOR_PRIMARY = "#ef4444";
@@ -47,33 +75,39 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [nextUrl, setNextUrl] = useState<string | null>("https://pokeapi.co/api/v2/pokemon?limit=60");
+  const [imageLoadErrors, setImageLoadErrors] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
+    const controller = new AbortController();
+
     const fetchPage = async () => {
       if (!nextUrl) {
+        setLoading(false);
         return;
       }
 
       try {
-        const response = await fetch(nextUrl);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch Pokémon data: ${response.status}`);
-        }
-
-        const data: PokemonPageResponse = await response.json();
+        const data = await fetchJson<PokemonPageResponse>(nextUrl, controller.signal);
         setPokemonList((prev) => [...prev, ...data.results]);
         setNextUrl(data.next);
       } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
         console.error("Error fetching Pokemon data:", error);
       } finally {
-        setLoading(false);
-        setLoadingMore(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+          setLoadingMore(false);
+        }
       }
     };
 
     if (loading) {
-      fetchPage();
+      void fetchPage();
     }
+
+    return () => controller.abort();
   }, [loading, nextUrl]);
 
   const loadMore = async () => {
@@ -82,16 +116,15 @@ export default function Home() {
     }
 
     setLoadingMore(true);
-    const response = await fetch(nextUrl);
-    if (!response.ok) {
+    try {
+      const data = await fetchJson<PokemonPageResponse>(nextUrl);
+      setPokemonList((prev) => [...prev, ...data.results]);
+      setNextUrl(data.next);
+    } catch (error) {
+      console.error("Error loading more Pokémon:", error);
+    } finally {
       setLoadingMore(false);
-      return;
     }
-
-    const data: PokemonPageResponse = await response.json();
-    setPokemonList((prev) => [...prev, ...data.results]);
-    setNextUrl(data.next);
-    setLoadingMore(false);
   };
 
   const totalLoaded = useMemo(() => pokemonList.length, [pokemonList]);
@@ -182,11 +215,14 @@ export default function Home() {
                         <CardContent sx={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", py: 3 }}>
                           <Box sx={{ width: 92, height: 92, mb: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
                             <Image
-                              src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemonId}.png`}
+                              src={imageLoadErrors[pokemon.name] ? "/pokemon-placeholder.svg" : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemonId}.png`}
                               alt={pokemon.name}
                               width={92}
                               height={92}
                               style={{ objectFit: "contain" }}
+                              onError={() => {
+                                setImageLoadErrors((prev) => ({ ...prev, [pokemon.name]: true }));
+                              }}
                             />
                           </Box>
                           <Typography variant="h6" sx={{ textTransform: "capitalize", fontWeight: 800, letterSpacing: 0.3 }}>

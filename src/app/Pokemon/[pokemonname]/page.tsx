@@ -49,6 +49,35 @@ interface EvolutionChainResponse {
   };
 }
 
+const detailRequestCache = new Map<string, Promise<unknown>>();
+
+async function fetchJson<T>(url: string, cacheKey: string, signal?: AbortSignal): Promise<T> {
+  const cached = detailRequestCache.get(cacheKey);
+  if (cached) {
+    return cached as Promise<T>;
+  }
+
+  const pending = fetch(url, {
+    cache: "force-cache",
+    headers: { Accept: "application/json" },
+    signal,
+  })
+    .then(async (response) => {
+      if (!response.ok) {
+        throw new Error(`Request failed: ${response.status}`);
+      }
+
+      return (await response.json()) as T;
+    })
+    .catch((error) => {
+      detailRequestCache.delete(cacheKey);
+      throw error;
+    });
+
+  detailRequestCache.set(cacheKey, pending);
+  return pending as Promise<T>;
+}
+
 function buildEvolutionNames(chain: EvolutionChainResponse["chain"] | null): string[] {
   if (!chain) {
     return [];
@@ -73,46 +102,56 @@ export default function PokemonDetailPage({
   const [description, setDescription] = useState("Loading description...");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
+    const controller = new AbortController();
     const fetchPokemonData = async () => {
-      try {
-        const pokemonResponse = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonname}`);
-        if (!pokemonResponse.ok) {
-          throw new Error("ไม่พบข้อมูล Pokémon นี้");
-        }
+      setLoading(true);
+      setError(null);
+      setDescription("Loading description...");
 
-        const pokemonData = (await pokemonResponse.json()) as PokemonDetail;
+      try {
+        const normalizedName = pokemonname.toLowerCase();
+        const [pokemonData, speciesData] = await Promise.all([
+          fetchJson<PokemonDetail>(`https://pokeapi.co/api/v2/pokemon/${normalizedName}`, `pokemon:${normalizedName}`, controller.signal),
+          fetchJson<PokemonSpecies>(`https://pokeapi.co/api/v2/pokemon-species/${normalizedName}`, `species:${normalizedName}`, controller.signal),
+        ]);
+
         setPokemon(pokemonData);
 
-        const speciesResponse = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${pokemonData.id}`);
-        if (!speciesResponse.ok) {
-          throw new Error("ไม่สามารถโหลดข้อมูลสายพันธุ์ได้");
-        }
-
-        const speciesData = (await speciesResponse.json()) as PokemonSpecies;
         const englishEntry = speciesData.flavor_text_entries.find((entry) => entry.language.name === "en");
         setDescription(englishEntry?.flavor_text.replace(/\n|\f/g, " ") ?? "No description available.");
 
-        const evolutionResponse = await fetch(speciesData.evolution_chain.url);
-        if (evolutionResponse.ok) {
-          const evolutionData = (await evolutionResponse.json()) as EvolutionChainResponse;
+        if (speciesData.evolution_chain?.url) {
+          const evolutionData = await fetchJson<EvolutionChainResponse>(speciesData.evolution_chain.url, `evolution:${speciesData.evolution_chain.url}`, controller.signal);
           setEvolutionNames(buildEvolutionNames(evolutionData.chain));
+        } else {
+          setEvolutionNames([]);
         }
       } catch (err) {
+        if (controller.signal.aborted) {
+          return;
+        }
         setError(err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการโหลดข้อมูล");
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchPokemonData();
+    void fetchPokemonData();
+
+    return () => controller.abort();
   }, [pokemonname]);
 
   const imageUrl = useMemo(
     () => pokemon?.sprites.other["official-artwork"].front_default || pokemon?.sprites.front_default || "",
     [pokemon],
   );
+
+  const resolvedImageUrl = imageError ? "/pokemon-placeholder.svg" : imageUrl || "/pokemon-placeholder.svg";
 
   return (
     <Box sx={{ minHeight: "100vh", background: "linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%)", py: { xs: 4, md: 6 } }}>
@@ -150,11 +189,12 @@ export default function PokemonDetailPage({
             <Box sx={{ display: "flex", flexDirection: { xs: "column", md: "row" }, gap: 4, alignItems: "center" }}>
               <Box sx={{ width: { xs: "100%", md: "33%" }, display: "flex", justifyContent: "center" }}>
                 <Image
-                  src={imageUrl || "/pokemon-placeholder.png"}
+                  src={resolvedImageUrl}
                   alt={pokemon.name}
                   width={260}
                   height={260}
                   style={{ width: 260, height: 260, objectFit: "contain", borderRadius: 24, background: "#f8fafc", padding: 16 }}
+                  onError={() => setImageError(true)}
                 />
               </Box>
 
