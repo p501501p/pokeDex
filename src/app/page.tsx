@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import {
   Avatar,
@@ -179,11 +180,15 @@ export default function Home() {
                     <Card sx={{ borderRadius: 6, height: "100%", overflow: "hidden", transition: "transform 0.18s ease, box-shadow 0.18s ease", boxShadow: 1, background: '#fff', borderTop: `4px solid ${COLOR_PRIMARY}`, "&:hover": { transform: "translateY(-6px)", boxShadow: 8 } }}>
                       <CardActionArea component="a" href={`/Pokemon/${pokemon.name}`} sx={{ height: "100%" }}>
                         <CardContent sx={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", py: 3 }}>
-                          <Avatar
-                            alt={pokemon.name}
-                            src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemonId}.png`}
-                            sx={{ width: 92, height: 92, mb: 2, bgcolor: 'transparent' }}
-                          />
+                          <Box sx={{ width: 92, height: 92, mb: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <Image
+                              src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemonId}.png`}
+                              alt={pokemon.name}
+                              width={92}
+                              height={92}
+                              style={{ objectFit: "contain" }}
+                            />
+                          </Box>
                           <Typography variant="h6" sx={{ textTransform: "capitalize", fontWeight: 800, letterSpacing: 0.3 }}>
                             {pokemon.name}
                           </Typography>

@@ -14,6 +14,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
+import Image from "next/image";
 import Link from "next/link";
 import { use, useEffect, useMemo, useState } from "react";
 
@@ -148,9 +149,11 @@ export default function PokemonDetailPage({
           <Paper elevation={0} sx={{ borderRadius: 4, p: { xs: 3, md: 4 }, background: "rgba(255,255,255,0.9)" }}>
             <Box sx={{ display: "flex", flexDirection: { xs: "column", md: "row" }, gap: 4, alignItems: "center" }}>
               <Box sx={{ width: { xs: "100%", md: "33%" }, display: "flex", justifyContent: "center" }}>
-                <img
+                <Image
                   src={imageUrl || "/pokemon-placeholder.png"}
                   alt={pokemon.name}
+                  width={260}
+                  height={260}
                   style={{ width: 260, height: 260, objectFit: "contain", borderRadius: 24, background: "#f8fafc", padding: 16 }}
                 />
               </Box>
